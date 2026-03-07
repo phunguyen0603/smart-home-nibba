@@ -1,0 +1,10 @@
+# ============================================================
+#  requirements.txt — Thư viện cần cài cho toàn bộ dự án
+#  To Install: pip install -r requirements.txt
+# ============================================================
+
+# --- MQTT (Connetct Adafruit IO) -----------------------------
+paho-mqtt==1.6.1
+# --- Camera & AI (later use) ---------
+opencv-python==4.9.0.80
+# face-recognition==1.3.0
