@@ -29,3 +29,7 @@
 # --- AI: Nhận diện khuôn mặt --------------------------------
 
 # Lưu ý: face-recognition cần cài cmake trước
+
+=======
+
+# smart-home-nibba
