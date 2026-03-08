@@ -1,35 +1,110 @@
-# ============================================================
+# Smart Home IoT – Yolo:Bit
 
-# requirements.txt — Thư viện cho dự án SmartHome IoT niqqa
+Hệ thống **Smart Home IoT** sử dụng **Yolo:Bit** để thu thập dữ liệu cảm biến, điều khiển thiết bị từ xa và tích hợp dashboard web thông qua MQTT.
 
-#
+## Features
 
-# Cài lần đầu:
+## Hardware
 
-# Windows : py -3.10 -m venv venv
+- Yolo:Bit (ESP32)
+- DHT20 Temperature & Humidity Sensor
+- IR Receiver + Remote
+- ...
 
-# venv\Scripts\activate
+## Installation
 
-# pip install -r requirements.txt
+### 1. Tạo môi trường Python
 
-#
+```bash
+py -3.10 -m venv venv
+```
 
-# ============================================================
+### 2. Kích hoạt môi trường
 
-# ============================================================
+```bash
+venv\Scripts\activate
+```
 
-# PHẦN DƯỚI CHỈ CÀI KHI LÀM TÍNH NĂNG CAMERA + AI
+### 3. Cài thư viện
 
-# Bỏ comment (#) khi cần, rồi chạy lại pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
-# ============================================================
+## Running the Project
 
-# --- Camera: Đọc webcam -------------------------------------
+Upload code MicroPython lên **Yolo:Bit**:
 
-# --- AI: Nhận diện khuôn mặt --------------------------------
+- `config/setting.py`
+- `sensors/dht20.py`
+- `sensors/ir_receiver.py`
+- `mqtt/client.py`
+- `main.py`
 
-# Lưu ý: face-recognition cần cài cmake trước
+Sau đó chạy:
 
-=======
+```bash
+main.py
+```
 
-# smart-home-nibba
+Thiết bị sẽ:
+
+1. Kết nối WiFi
+2. Kết nối MQTT (Adafruit IO)
+3. Đọc dữ liệu cảm biến
+4. Gửi dữ liệu lên cloud
+5. Nhận lệnh điều khiển từ web
+
+## Project Structure
+
+```
+D:.
+├───camera
+├───doc
+├───tests
+├───webapp
+├───actuators
+├───config
+├───mqtt
+└───sensors
+```
+
+## Optional Features
+
+Các tính năng dưới đây **không bắt buộc** và chỉ cần khi mở rộng hệ thống.
+
+### Camera
+
+Đọc webcam để giám sát nhà.
+
+### AI Face Recognition
+
+Nhận diện khuôn mặt để mở cửa tự động.
+
+Yêu cầu cài thêm:
+
+```
+cmake
+face-recognition
+opencv-python
+```
+
+## Architecture
+
+```
+Sensors / Remote
+        │
+        ▼
+     Yolo:Bit
+        │
+        │ MQTT
+        ▼
+   Adafruit IO
+        │
+        ▼
+   Web Dashboard
+```
+
+## License
+
+Educational project for IoT learning.
