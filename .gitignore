@@ -1,5 +1,13 @@
-yolobit/config/settings.py
+yolobit/config/setting.py
+
 camera/
+
+webapp/backend/config
+webapp/backend/package-lock.json
+webapp/backend/Package.json
+webapp/node_modules
+
+WHL/
 
 venv/
 .venv/

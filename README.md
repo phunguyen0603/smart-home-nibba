@@ -59,14 +59,42 @@ Thiết bị sẽ:
 
 ```
 D:.
-├───camera
-├───doc
-├───tests
-├───webapp
-├───actuators
-├───config
-├───mqtt
-└───sensors
+├── camera/
+├── docs/
+├── tests/
+webapp/
+├── backend/
+│   ├── database/
+│   │   ├── models/
+│   │   │   ├── User.js
+│   │   │   ├── SensorLog.js
+│   │   │   ├── DoorLog.js
+│   │   │   └── AlertLog.js
+│   │   └── connection.js
+│   │
+│   ├── routes/
+│   │   ├── sensor.js
+│   │   ├── door.js
+│   │   ├── alert.js
+│   │   └── auth.js
+│   │
+│   ├── middleware/
+│   │   └── auth.js
+│   │
+│   ├── config/
+│   │   └── .env                ← MONGO_URI, JWT_SECRET
+│   │
+│   └── server.js               ← entry point
+│
+└── frontend/
+├── yolobit/
+│   ├── config/
+│   ├── mqtt/
+│   ├── sensors/
+│   └── actuators/
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
 
 ## Optional Features
@@ -107,4 +135,4 @@ Sensors / Remote
 
 ## License
 
-Educational project for IoT learning.
+Educational project for IoT learning of NibbaTeam.
