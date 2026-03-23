@@ -16,7 +16,7 @@ const SensorLogSchema = new mongoose.Schema(
     },
     unit: {
       type: String,
-      // temperature → "°C" | humidity → "%" | light → "lux"
+      // temperature → "Celcius" | humidity → "%" | light → "lux"
       default: function () {
         const units = {
           temperature: "Celcius Degree",
