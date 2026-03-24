@@ -6,6 +6,14 @@
 
 const SensorService = require("../services/Sensorservice");
 
+const ALLOWED_TYPES = ["temperature", "humidity", "light"];
+
+function getStatusCode(error) {
+  return error.statusCode && Number.isInteger(error.statusCode)
+    ? error.statusCode
+    : 500;
+}
+
 const SensorController = {
   // ----------------------------------------------------------
   //  POST /api/sensor
@@ -15,9 +23,23 @@ const SensorController = {
   async saveSensorData(req, res) {
     try {
       const { type, value } = req.body;
-      // TODO: Trả về 201 + log vừa tạo
+
+      if (!type || value === undefined || value === null) {
+        return res.status(400).json({
+          message: "type và value là bắt buộc",
+        });
+      }
+
+      if (!ALLOWED_TYPES.includes(type)) {
+        return res.status(400).json({
+          message: `type không hợp lệ. Chỉ chấp nhận: ${ALLOWED_TYPES.join(", ")}`,
+        });
+      }
+
+      const sensorLog = await SensorService.saveSensorData(type, value);
+      return res.status(201).json(sensorLog);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      return res.status(getStatusCode(error)).json({ message: error.message });
     }
   },
 
@@ -27,10 +49,10 @@ const SensorController = {
   // ----------------------------------------------------------
   async getLatest(req, res) {
     try {
-      // TODO: Gọi SensorService.getLatest()
-      // TODO: Trả về 200 + { temperature, humidity, light }
+      const latest = await SensorService.getLatest();
+      return res.status(200).json(latest);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      return res.status(getStatusCode(error)).json({ message: error.message });
     }
   },
 
@@ -42,11 +64,16 @@ const SensorController = {
     try {
       const { type, limit } = req.query;
 
-      // TODO: Validate type nếu có
-      // TODO: Gọi SensorService.getHistory(type, limit)
-      // TODO: Trả về 200 + danh sách logs
+      if (type && !ALLOWED_TYPES.includes(type)) {
+        return res.status(400).json({
+          message: `type không hợp lệ. Chỉ chấp nhận: ${ALLOWED_TYPES.join(", ")}`,
+        });
+      }
+
+      const history = await SensorService.getHistory(type, limit);
+      return res.status(200).json(history);
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      return res.status(getStatusCode(error)).json({ message: error.message });
     }
   },
 };

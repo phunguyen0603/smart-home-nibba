@@ -10,8 +10,9 @@ const AlertLogSchema = new mongoose.Schema(
       required: true,
       // human       : F2 - hồng ngoại phát hiện người
       // temperature : F1 - nhiệt độ vượt ngưỡng
+      // humidity    : F1 - độ ẩm vượt ngưỡng
       // stranger    : F5 - AI nhận diện người lạ (làm sau)
-      enum: ["human", "temperature", "stranger"],
+      enum: ["human", "temperature", "humidity", "stranger"],
     },
     message: {
       type: String,
