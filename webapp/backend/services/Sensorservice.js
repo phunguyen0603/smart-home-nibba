@@ -1,5 +1,5 @@
-const SensorLog = require("../database/models/SensorLog");
-const AlertLog = require("../database/models/AlertLog");
+const SensorLog = require("../database/models/Sensorlog");
+const AlertLog = require("../database/models/Alertlog");
 
 // Ngưỡng cảnh báo
 const THRESHOLD = {
@@ -7,9 +7,38 @@ const THRESHOLD = {
   humidity: 80, // vượt ngưỡng → tạo alert
 };
 
+const ALERT_MESSAGE_BUILDER = {
+  temperature: (value) => `Nhiệt độ ${value}°C vượt ngưỡng cho phép`,
+  humidity: (value) => `Độ ẩm ${value}% vượt ngưỡng cho phép`,
+};
+
+function toNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : NaN;
+}
+
+function createHttpError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
 const SensorService = {
   async saveSensorData(type, value) {
-    // TODO: Tạo SensorLog mới
+    const numericValue = toNumber(value);
+
+    if (Number.isNaN(numericValue)) {
+      throw createHttpError(400, "value phải là số hợp lệ");
+    }
+
+    const sensorLog = await SensorLog.create({
+      type,
+      value: numericValue,
+    });
+
+    await this.checkThreshold(type, numericValue);
+
+    return sensorLog;
   },
 
   // ----------------------------------------------------------
@@ -18,7 +47,13 @@ const SensorService = {
   //  @returns {{ temperature, humidity, light }} object chứa log mới nhất
   // ----------------------------------------------------------
   async getLatest() {
-    // TODO: Query SensorLog mới nhất cho từng type
+    const [temperature, humidity, light] = await Promise.all([
+      SensorLog.findOne({ type: "temperature" }).sort({ createdAt: -1 }),
+      SensorLog.findOne({ type: "humidity" }).sort({ createdAt: -1 }),
+      SensorLog.findOne({ type: "light" }).sort({ createdAt: -1 }),
+    ]);
+
+    return { temperature, humidity, light };
   },
 
   // ----------------------------------------------------------
@@ -29,15 +64,33 @@ const SensorService = {
   //  @returns {Array} danh sách SensorLog
   // ----------------------------------------------------------
   async getHistory(type, limit = 20) {
-    // TODO: Trả về danh sách logs
+    const parsedLimit = Number.parseInt(limit, 10);
+    const finalLimit = Number.isNaN(parsedLimit)
+      ? 20
+      : Math.min(Math.max(parsedLimit, 1), 200);
+
+    const query = type ? { type } : {};
+
+    return SensorLog.find(query).sort({ createdAt: -1 }).limit(finalLimit);
   },
 
   async checkThreshold(type, value) {
-    // TODO: So sánh value với THRESHOLD[type]
-    // TODO: Nếu vượt ngưỡng -> AlertLog.create({
-    //         type: "temperature",
-    //         message: "Nhiệt độ ${value} vượt ngưỡng cho phép"
-    //       })
+    const threshold = THRESHOLD[type];
+
+    if (threshold === undefined || value <= threshold) {
+      return null;
+    }
+
+    const messageBuilder = ALERT_MESSAGE_BUILDER[type];
+
+    if (!messageBuilder) {
+      return null;
+    }
+
+    return AlertLog.create({
+      type,
+      message: messageBuilder(value),
+    });
   },
 };
 
