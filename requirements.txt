@@ -1,0 +1,19 @@
+# ============================================================
+#  requirements.txt — Thư viện cần cài cho toàn bộ dự án
+#  To Install: pip install -r requirements.txt
+# ============================================================
+
+# --- MQTT (Connetct Adafruit IO) -----------------------------
+paho-mqtt==1.6.1
+
+#  PHẦN DƯỚI CHỈ CÀI KHI LÀM TÍNH NĂNG CAMERA + AI
+#  Bỏ comment (#) khi cần, rồi chạy lại pip install -r requirements.txt
+# ============================================================
+opencv-python==4.9.0.80 # --- Camera: Đọc webcam
+# --- AI: Nhận diện khuôn mặt --------------------------------
+# Nếu thực hiện phần này nhớ cài pip install "numpy<2"
+# Cài theo đúng thứ tự: cmake → dlib → face-recognition
+cmake==3.29.3
+dlib==19.24.4 # Cái này có thể lâu
+# face-recognition==1.3.0
+
