@@ -56,7 +56,7 @@ class MQTTBridge {
       const feeds = [
         "temperature", "humidity", "distance",
         "motion", "ir-signal", "stranger-alert",
-        "relay", "fan", "servo", "led",
+        "relay", "fan", "servo", "led", "brightness", "mode"
       ];
 
       feeds.forEach((feed) => {
@@ -112,10 +112,13 @@ class MQTTBridge {
           await this._handleStrangerAlert(parseInt(value));
           break;
 
+        case "servo":
+          await this._handleDoor(value);
+          break;
+
         // Actuator feeds — chỉ cần emit cho frontend biết trạng thái
         case "relay":
         case "fan":
-        case "servo":
         case "led":
           this.io.emit("device-status", { device: feed, value });
           break;
@@ -224,6 +227,17 @@ class MQTTBridge {
       this.io.emit("new-alert", alert);
       console.log(`👤 Stranger alert!`);
     }
+  }
+
+  // ----------------------------------------------------------
+  //  Xử lý đóng/mở cửa (DoorLog)
+  // ----------------------------------------------------------
+  async _handleDoor(value) {
+    const action = value === "1" ? "open" : "close";
+    const log = await DoorLog.create({ action, trigger: "ir_sensor" });
+    
+    this.io.emit("device-status", { device: "servo", value });
+    console.log(`🚪 Door ${action} recorded to DB`);
   }
 
   // ----------------------------------------------------------

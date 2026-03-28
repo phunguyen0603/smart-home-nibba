@@ -92,32 +92,42 @@ class SmartHomeSystem:
             display.scroll('MANUAL MODE')
 
     # ==========================================
-    # HÀM XỬ LÝ TỰ ĐỘNG (AUTO MODE)
+    # HÀM XỬ LÝ TỰ ĐỘNG (AUTO MODE) - Smart Detecting UC_02
     # ==========================================
     def run_auto(self, brightness, temperature):
-        # 1. Đèn tự động (PIR)
-        if pin2.read_digital() == 1 and brightness < LIGHT_THRESHOLD:
-            if not self.led_on:
-                mqtt.publish(FEED_RGB_LED, '1')
-                self.rgb_led.show(0, hex_to_rgb('#ffa500'))
-                self.led_on = True
-            self.counter_led = 10
+        # Xác định ngữ cảnh: Ban ngày hay Ban đêm
+        is_daytime = brightness > LIGHT_LOW
 
-        # 2. Cửa tự động (Siêu âm)
-        if self.ultrasonic.distance_cm() < DISTANCE_THRESHOLD:
-            if not self.door_open:
-                mqtt.publish(FEED_DOOR, '1')
-                pin15.servo_write(90)
-                self.door_open = True
-            self.counter_door = 10
+        if is_daytime:
+            # UC_02.1, UC_02.3: Cảm biến hồng ngoại phát hiện chuyển động -> Mở cửa
+            if pin2.read_digital() == 1:
+                if not self.door_open:
+                    mqtt.publish(FEED_DOOR, '1')
+                    pin15.servo_write(90)
+                    self.door_open = True
+                self.counter_door = 10 # Cửa tự đóng sau 10s khi không có người (Alternative 1)
 
-        # 3. Quạt tự động (Nhiệt độ)
-        if temperature > TEMP_THRESHOLD:
+            # UC_02.2, UC_02.4: Cảm biến khoảng cách phát hiện người -> Bật đèn LED
+            if self.ultrasonic.distance_cm() < DISTANCE_THRESHOLD:
+                if not self.led_on:
+                    mqtt.publish(FEED_RGB_LED, '1')
+                    self.rgb_led.show(0, hex_to_rgb('#ffa500'))
+                    self.led_on = True
+                self.counter_led = 10
+        else:
+            # UC_02.6, UC_02.7: Ban đêm - Vô hiệu hóa tính năng tự mở cửa và tự động bật đèn.
+            # Phát hiện chuyển động (bằng PIR hoặc Siêu âm) -> Kích hoạt cảnh báo đột nhập
+            if pin2.read_digital() == 1 or self.ultrasonic.distance_cm() < DISTANCE_THRESHOLD:
+                # Gửi cảnh báo người lạ đột nhập lên Webapp
+                mqtt.publish(FEED_STRANGER, '1')
+
+        # Quạt tự động (Nhiệt độ)
+        if temperature > TEMP_HIGH_THRESHOLD:
             if not self.fan_on:
                 mqtt.publish(FEED_FAN, '1')
                 pin14.write_analog(round(translate(70, 0, 100, 0, 1023)))
                 self.fan_on = True
-        else:
+        elif temperature < TEMP_LOW_THRESHOLD: # Chỉ tắt khi nhiệt độ dưới ngưỡng mát
             if self.fan_on:
                 pin14.write_analog(0)
                 mqtt.publish(FEED_FAN, '0')
