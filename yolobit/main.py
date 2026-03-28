@@ -12,7 +12,7 @@ from aiot_dht20 import DHT20
 from aiot_lcd1602 import LCD1602
 import time
 
-# Import cấu hình từ các module do nhóm tự định nghĩa
+# Import cấu hình từ các module
 from config.setting import *
 from adafruit.feeds import *
 
@@ -96,7 +96,7 @@ class SmartHomeSystem:
     # ==========================================
     def run_auto(self, brightness, temperature):
         # 1. Đèn tự động (PIR)
-        if pin2.read_digital() == 1 and brightness > LIGHT_THRESHOLD:
+        if pin2.read_digital() == 1 and brightness < LIGHT_THRESHOLD:
             if not self.led_on:
                 mqtt.publish(FEED_RGB_LED, '1')
                 self.rgb_led.show(0, hex_to_rgb('#ffa500'))
@@ -104,7 +104,7 @@ class SmartHomeSystem:
             self.counter_led = 10
 
         # 2. Cửa tự động (Siêu âm)
-        if self.ultrasonic.distance_cm() < DISTANCE_THRESHOLD and brightness > LIGHT_THRESHOLD:
+        if self.ultrasonic.distance_cm() < DISTANCE_THRESHOLD:
             if not self.door_open:
                 mqtt.publish(FEED_DOOR, '1')
                 pin15.servo_write(90)
@@ -184,7 +184,7 @@ class SmartHomeSystem:
             # Nhịp nghỉ để CPU không bị quá tải
             time.sleep_ms(100)
 
-# Khởi chạy hệ thống
+# Khởi chạy hệ thống (nếu chạy file trực tiếp)
 if __name__ == '__main__':
     smarthome = SmartHomeSystem()
     smarthome.start()

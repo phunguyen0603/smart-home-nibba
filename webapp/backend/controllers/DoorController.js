@@ -1,36 +1,73 @@
-const DoorLog = require("../database/models/Doorlog");
 const DoorService = require("../services/Doorservice");
 
 const DoorController = {
   // ==========================================
   // FEATURE: Remote Door Control (Manual Trigger)
+  // Ghi log mở/đóng cửa (Trigger by webapp hoặc remote/sensor)
   // ==========================================
-  // TODO: Your code is here
-  // Nhiệm vụ: Cho phép mở/đóng cửa từ xa (Web/App)
-  // Yêu cầu:
-  // 1. Nhận action từ request body (open / close)
-  // 2. Gửi lệnh xuống hardware (Servo qua MQTT hoặc tương tự) // Chỗ này chưa cần thực hiện
-  // chủ yếu là tự test bằng postman khi nào cho phép thì log lưu cái model Doorlog và db thì ok
-  // có phần cứng mình sẽ test sau
-  // 3. Ghi log vào DB với timestamp
-  // ==========================================
-  remoteControl: async (req, res) => {
+  saveDoorLog: async (req, res) => {
     try {
-      // Logic tự do. Đúng yêu cầu là được.
-      res.status(200).json({
-        success: true,
-        message: "TODO: Implement remote door control logic",
+      const { action, trigger } = req.body;
+
+      if (!action || !trigger) {
+        return res.status(400).json({
+          message: "Thiếu action hoặc trigger",
+          example: { action: "open", trigger: "webapp" },
+        });
+      }
+
+      const log = await DoorService.createLog(action, trigger);
+
+      res.status(201).json({
+        message: `Cửa đã ${action === "open" ? "MỞ" : "ĐÓNG"} (${trigger})`,
+        data: log,
       });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
   },
 
+  // ------------------------------------------------------------
+  //  Lấy lịch sử mở/đóng cửa
+  // ------------------------------------------------------------
   getDoorLogs: async (req, res) => {
     try {
-      // TODO:
-      // const logs = await DoorLog.find().sort({ createdAt: -1 });
-      // Yêu cầu trả lại được một list các lần đóng mở cửa của ở nhà
+      const { action, limit = 50, page = 1, from, to } = req.query;
+
+      const filter = {};
+      if (action) filter.action = action;
+      if (from || to) {
+        filter.createdAt = {};
+        if (from) filter.createdAt.$gte = new Date(from);
+        if (to) filter.createdAt.$lte = new Date(to);
+      }
+
+      const result = await DoorService.getDoorLogs(filter, limit, page);
+      res.status(200).json(result);
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+
+  // ------------------------------------------------------------
+  //  Lấy trạng thái cửa hiện tại
+  // ------------------------------------------------------------
+  getStatus: async (req, res) => {
+    try {
+      const lastLog = await DoorService.getLatestStatus();
+
+      if (!lastLog) {
+        return res.json({
+          status: "unknown",
+          message: "Chưa có dữ liệu cửa",
+        });
+      }
+
+      res.json({
+        status: lastLog.action,
+        trigger: lastLog.trigger,
+        updatedAt: lastLog.createdAt,
+      });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }

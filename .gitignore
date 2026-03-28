@@ -3,9 +3,9 @@ yolobit/config/setting.py
 camera/
 
 webapp/backend/config
-webapp/backend/package-lock.json
-webapp/backend/Package.json
-webapp/node_modules
+node_modules/
+**/node_modules/
+package-lock.json
 
 webapp/frontend/eslint.config.js
 webapp/frontend/package-lock.json
