@@ -8,9 +8,9 @@
 //  Đồng thời emit Socket.IO events để frontend cập nhật realtime
 // ============================================================
 const mqtt = require("mqtt");
-const SensorLog = require("../database/models/SensorLog");
-const AlertLog = require("../database/models/AlertLog");
-const DoorLog = require("../database/models/DoorLog");
+const SensorLog = require("../database/models/Sensorlog");
+const AlertLog = require("../database/models/Alertlog");
+const DoorLog = require("../database/models/Doorlog");
 
 // Ngưỡng cảnh báo (sync với yolobit/config/setting.py)
 const THRESHOLDS = {
@@ -175,31 +175,13 @@ class MQTTBridge {
       unit: "cm",
       timestamp: new Date(),
     });
-
-    // Phát hiện người trong phạm vi 50cm
-    if (value > 0 && value < 50) {
-      const alert = await AlertLog.create({
-        type: "human",
-        message: `Phát hiện người ở khoảng cách ${value}cm`,
-      });
-      this.io.emit("new-alert", alert);
-    }
+    // Không tạo AlertLog tự động ở đây nữa vì đã được xử lý bởi logic UC_02 (Smart Detecting) trên YoloBit (Nighttime Alert)
   }
 
   // ----------------------------------------------------------
   //  Xử lý cảm biến chuyển động (PIR/motion)
   // ----------------------------------------------------------
   async _handleMotion(value) {
-    if (value === 1) {
-      const alert = await AlertLog.create({
-        type: "human",
-        message: `Phát hiện chuyển động lúc ${new Date().toLocaleTimeString("vi-VN")}`,
-      });
-
-      this.io.emit("new-alert", alert);
-      console.log(`🚶 Motion detected!`);
-    }
-
     this.io.emit("sensor-data", {
       type: "motion",
       value,

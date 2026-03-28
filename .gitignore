@@ -7,13 +7,6 @@ node_modules/
 **/node_modules/
 package-lock.json
 
-webapp/frontend/eslint.config.js
-webapp/frontend/package-lock.json
-webapp/frontend/package.json
-webapp/frontend/postcss.config.js
-webapp/frontend/README.md
-webapp/frontend/tailwind.config.js
-webapp/frontend/vite.config.js
 
 WHL/
 
