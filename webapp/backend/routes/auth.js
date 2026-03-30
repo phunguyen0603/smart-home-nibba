@@ -25,7 +25,9 @@ router.post("/register", async (req, res) => {
 
     // Kiểm tra input
     if (!name || !email || !password) {
-      return res.status(400).json({ message: "Vui lòng điền đầy đủ thông tin" });
+      return res
+        .status(400)
+        .json({ message: "Vui lòng điền đầy đủ thông tin" });
     }
 
     // Kiểm tra email đã tồn tại chưa
@@ -67,19 +69,25 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Vui lòng nhập email và mật khẩu" });
+      return res
+        .status(400)
+        .json({ message: "Vui lòng nhập email và mật khẩu" });
     }
 
     // Tìm user theo email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+      return res
+        .status(401)
+        .json({ message: "Email hoặc mật khẩu không đúng" });
     }
 
     // So sánh password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Email hoặc mật khẩu không đúng" });
+      return res
+        .status(401)
+        .json({ message: "Email hoặc mật khẩu không đúng" });
     }
 
     res.json({
@@ -99,7 +107,7 @@ router.post("/login", async (req, res) => {
 // ============================================================
 //  GET /api/auth/me — Lấy thông tin user hiện tại (cần token)
 // ============================================================
-router.get("/me", protect, async (req, res) => {
+router.get("/me", async (req, res) => {
   res.json({
     user: {
       id: req.user._id,

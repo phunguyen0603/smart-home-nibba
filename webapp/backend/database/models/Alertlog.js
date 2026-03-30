@@ -47,4 +47,5 @@ const AlertLogSchema = new mongoose.Schema(
 AlertLogSchema.index({ type: 1, createdAt: -1 });
 AlertLogSchema.index({ is_read: 1 }); // Query alert chưa đọc
 
-module.exports = mongoose.model("AlertLog", AlertLogSchema);
+module.exports =
+  mongoose.models.AlertLog || mongoose.model("AlertLog", AlertLogSchema);

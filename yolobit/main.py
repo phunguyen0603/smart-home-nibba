@@ -140,6 +140,7 @@ class SmartHomeSystem:
         """Đọc cảm biến và báo cáo lên mạng mỗi 10 giây"""
         self.dht20.read_dht20()
         temp = self.dht20.dht20_temperature()
+
         hum = self.dht20.dht20_humidity()
         bright = round(translate(pin0.read_analog(), 0, 4095, 0, 100))
 

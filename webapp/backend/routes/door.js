@@ -12,8 +12,8 @@ const { protect } = require("../middleware/auth_middleware");
 
 const router = express.Router();
 
-router.get("/", protect, DoorController.getDoorLogs);
-router.get("/status", protect, DoorController.getStatus);
+router.get("/", DoorController.getDoorLogs);
+router.get("/status", DoorController.getStatus);
 router.post("/", DoorController.saveDoorLog);
 
 module.exports = router;

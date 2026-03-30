@@ -35,8 +35,14 @@ class MQTTBridge {
   //  Kết nối đến Adafruit IO MQTT broker
   // ----------------------------------------------------------
   connect() {
-    if (!this.username || !this.key || this.username === "your-adafruit-username") {
-      console.log("⚠️  MQTT Bridge: Chưa cấu hình AIO_USERNAME/AIO_KEY trong .env");
+    if (
+      !this.username ||
+      !this.key ||
+      this.username === "your-adafruit-username"
+    ) {
+      console.log(
+        "⚠️  MQTT Bridge: Chưa cấu hình AIO_USERNAME/AIO_KEY trong .env",
+      );
       console.log("   Bridge sẽ không hoạt động cho đến khi cấu hình đúng.");
       return;
     }
@@ -54,9 +60,18 @@ class MQTTBridge {
 
       // Subscribe tất cả feeds sensor
       const feeds = [
-        "temperature", "humidity", "distance",
-        "motion", "ir-signal", "stranger-alert",
-        "relay", "fan", "servo", "led", "brightness", "mode"
+        "temperature",
+        "humidity",
+        "distance",
+        "motion",
+        "ir-signal",
+        "stranger-alert",
+        "relay",
+        "fan",
+        "servo",
+        "led",
+        "brightness",
+        "mode",
       ];
 
       feeds.forEach((feed) => {
@@ -94,6 +109,10 @@ class MQTTBridge {
 
         case "humidity":
           await this._handleSensor("humidity", parseFloat(value));
+          break;
+
+        case "brightness":
+          await this._handleSensor("light", parseFloat(value));
           break;
 
         case "distance":
@@ -235,7 +254,7 @@ class MQTTBridge {
   async _handleDoor(value) {
     const action = value === "1" ? "open" : "close";
     const log = await DoorLog.create({ action, trigger: "ir_sensor" });
-    
+
     this.io.emit("device-status", { device: "servo", value });
     console.log(`🚪 Door ${action} recorded to DB`);
   }

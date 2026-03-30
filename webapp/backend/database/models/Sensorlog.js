@@ -34,4 +34,5 @@ const SensorLogSchema = new mongoose.Schema(
 
 SensorLogSchema.index({ type: 1, createdAt: -1 });
 
-module.exports = mongoose.model("SensorLog", SensorLogSchema);
+module.exports =
+  mongoose.models.SensorLog || mongoose.model("SensorLog", SensorLogSchema);
