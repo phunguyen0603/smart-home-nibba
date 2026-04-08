@@ -41,7 +41,7 @@ class MQTTBridge {
       this.username === "your-adafruit-username"
     ) {
       console.log(
-        "⚠️  MQTT Bridge: Chưa cấu hình AIO_USERNAME/AIO_KEY trong .env",
+        "MQTT Bridge: Chưa cấu hình AIO_USERNAME/AIO_KEY trong .env",
       );
       console.log("   Bridge sẽ không hoạt động cho đến khi cấu hình đúng.");
       return;
@@ -56,7 +56,7 @@ class MQTTBridge {
     });
 
     this.client.on("connect", () => {
-      console.log("✅ MQTT Bridge connected to Adafruit IO");
+      console.log("MQTT Bridge connected to Adafruit IO");
 
       // Subscribe tất cả feeds sensor
       const feeds = [
@@ -76,7 +76,7 @@ class MQTTBridge {
 
       feeds.forEach((feed) => {
         this.client.subscribe(this._feed(feed), (err) => {
-          if (!err) console.log(`   📡 Listening: ${feed}`);
+          if (!err) console.log(`Listening: ${feed}`);
         });
       });
     });
@@ -86,11 +86,11 @@ class MQTTBridge {
     });
 
     this.client.on("error", (err) => {
-      console.error("❌ MQTT Bridge error:", err.message);
+      console.error("MQTT Bridge error:", err.message);
     });
 
     this.client.on("offline", () => {
-      console.log("⚠️  MQTT Bridge offline, attempting reconnect...");
+      console.log("MQTT Bridge offline, attempting reconnect...");
     });
   }
 
@@ -99,7 +99,7 @@ class MQTTBridge {
   // ----------------------------------------------------------
   async _handleMessage(topic, value) {
     const feed = topic.split("/").pop(); // Lấy tên feed từ topic
-    console.log(`📥 [${feed}]: ${value}`);
+    console.log(`[${feed}]: ${value}`);
 
     try {
       switch (feed) {
@@ -143,7 +143,7 @@ class MQTTBridge {
           break;
       }
     } catch (err) {
-      console.error(`❌ Error processing [${feed}]:`, err.message);
+      console.error(`Error processing [${feed}]:`, err.message);
     }
   }
 
@@ -179,7 +179,7 @@ class MQTTBridge {
           message: alertMsg,
         });
         this.io.emit("new-alert", alert);
-        console.log(`🚨 Alert: ${alertMsg}`);
+        console.log(`Alert: ${alertMsg}`);
       }
     }
   }
@@ -244,7 +244,7 @@ class MQTTBridge {
       });
 
       this.io.emit("new-alert", alert);
-      console.log(`👤 Stranger alert!`);
+      console.log(`Stranger alert!`);
     }
   }
 
@@ -256,7 +256,7 @@ class MQTTBridge {
     const log = await DoorLog.create({ action, trigger: "ir_sensor" });
 
     this.io.emit("device-status", { device: "servo", value });
-    console.log(`🚪 Door ${action} recorded to DB`);
+    console.log(`Door ${action} recorded to DB`);
   }
 
   // ----------------------------------------------------------
@@ -264,12 +264,12 @@ class MQTTBridge {
   // ----------------------------------------------------------
   publish(feed, value) {
     if (!this.client || !this.client.connected) {
-      console.log("⚠️  MQTT Bridge chưa kết nối, không thể gửi lệnh");
+      console.log("MQTT Bridge chưa kết nối, không thể gửi lệnh");
       return false;
     }
 
     this.client.publish(this._feed(feed), String(value));
-    console.log(`📤 Published [${feed}]: ${value}`);
+    console.log(`Published [${feed}]: ${value}`);
     return true;
   }
 
@@ -279,7 +279,7 @@ class MQTTBridge {
   disconnect() {
     if (this.client) {
       this.client.end();
-      console.log("🔌 MQTT Bridge disconnected");
+      console.log("MQTT Bridge disconnected");
     }
   }
 }

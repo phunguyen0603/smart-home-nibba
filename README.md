@@ -62,19 +62,29 @@ pip install -r requirements.txt
 cd webapp/backend
 ```
 
-#### 2. Cài dependencies
+#### 2. Khởi chạy Database local (MongoDB & Redis qua Docker)
+
+Hệ thống sử dụng Docker Compose để khởi tạo nhanh Database, yêu cầu có Docker Desktop chạy ngầm.
+
+```bash
+npm run infra
+```
+
+*(Sau khi hoàn tất làm việc, bạn có thể chạy `npm run infra:down` để tắt database nếu cần).*
+
+#### 3. Cài dependencies
 
 ```bash
 npm install
 ```
 
-#### 3. Tạo file `.env`
+#### 4. Kích hoạt Environment Variables
 
 ```bash
 copy config\.env.example config\.env
 ```
 
-#### 4. Chạy server
+#### 5. Chạy server
 
 ```bash
 # Development (auto reload)
