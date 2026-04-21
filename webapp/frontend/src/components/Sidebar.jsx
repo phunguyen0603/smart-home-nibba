@@ -1,34 +1,32 @@
 import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:3000");
+import { socket, apiClient } from "../config";
 
 const navItems = [
-  { path: "/dashboard", label: "Dashboard", icon: "📊" },
-  { path: "/control", label: "Control", icon: "🎛️" },
-  { path: "/alerts", label: "Alerts", icon: "🔔" },
-  { path: "/history", label: "History", icon: "📋" },
+  { path: "/dashboard", label: "Tổng quan", icon: "📊" },
+  { path: "/control", label: "Điều khiển", icon: "🎛️" },
+  { path: "/alerts", label: "Cảnh báo", icon: "🔔" },
+  { path: "/history", label: "Lịch sử", icon: "📋" },
 ];
 
-const adminItems = [{ path: "/admin", label: "Manage Users", icon: "👥" }];
+const adminItems = [{ path: "/admin", label: "Quản lý Người dùng", icon: "👥" }];
 
-export default function Sidebar() {
+export default function Sidebar({ onLogout, isDarkMode, toggleTheme }) {
   const [unread, setUnread] = useState(0);
 
   const fetchUnread = () => {
-    fetch("http://localhost:3000/api/alert/unread")
-      .then((res) => res.json())
-      .then((data) => setUnread(data.unread || 0))
+    apiClient.get("/alert/unread")
+      .then((res) => setUnread(res.data?.unread || 0))
       .catch(() => setUnread(0));
   };
 
   useEffect(() => {
+    fetchUnread(); // gọi sớm lúc mount
+    
     const handleNewAlert = () => fetchUnread();
     const handleAlertRead = () => fetchUnread();
-
     const handleAlertDeleted = (deletedCount) => {
-      setUnread((prev) => Math.max(prev - deletedCount, 0)); // trừ trực tiếp
+      setUnread((prev) => Math.max(prev - deletedCount, 0));
     };
 
     socket.on("new-alert", handleNewAlert);
@@ -46,76 +44,98 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`flex flex-col h-screen bg-gray-900 text-white transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}
+      className={`flex flex-col h-screen bg-gray-900 dark:bg-black text-white transition-all duration-300 relative z-20 shadow-2xl shadow-black/50 ${collapsed ? "w-16" : "w-64"}`}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-gray-700">
+      <div className="flex items-center justify-between px-4 py-5 border-b border-gray-800">
         {!collapsed && (
-          <span className="text-lg font-bold tracking-wide">🏠 SmartHome</span>
+          <span className="text-lg font-bold tracking-wide italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">🏠 SmartHome</span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="text-gray-400 hover:text-white text-xl ml-auto"
+          className="text-gray-400 hover:text-white text-xl ml-auto hover:bg-gray-800 p-1 rounded-lg transition-colors"
         >
           {collapsed ? "→" : "←"}
         </button>
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 px-2 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
-              ${isActive ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"}`
+              `flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-300 text-sm font-medium border border-transparent hover:-translate-y-0.5 hover:shadow-lg
+              ${isActive ? "bg-blue-600/90 text-white shadow-blue-500/30 border-blue-500/50" : "text-gray-400 hover:bg-gray-800/80 hover:text-gray-100 hover:border-gray-700"}`
             }
           >
-            <span className="text-lg">{item.icon}</span>
-            {!collapsed && <span className="flex-1">{item.label}</span>}
+            <span className="text-xl">{item.icon}</span>
+            {!collapsed && <span className="flex-1 tracking-wide">{item.label}</span>}
             {!collapsed && item.path === "/alerts" && unread > 0 && (
-              <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
+              <span className="bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-md shadow-red-500/40 animate-pulse">
                 {unread}
               </span>
             )}
-            {collapsed && item.badge && (
-              <span className="absolute ml-6 -mt-4 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                {item.badge}
+            {collapsed && item.path === "/alerts" && unread > 0 && (
+              <span className="absolute ml-6 -mt-4 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-gray-900 z-10">
+                {unread}
               </span>
             )}
           </NavLink>
         ))}
 
         {/* Divider */}
-        <div className="border-t border-gray-700 my-3" />
+        <div className="border-t border-gray-800 my-4" />
 
         {adminItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm
-              ${isActive ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-800 hover:text-white"}`
+              `flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-300 text-sm font-medium border border-transparent hover:-translate-y-0.5 hover:shadow-lg
+              ${isActive ? "bg-indigo-600/90 text-white shadow-indigo-500/30 border-indigo-500/50" : "text-gray-400 hover:bg-gray-800/80 hover:text-gray-100 hover:border-gray-700"}`
             }
           >
-            <span className="text-lg">{item.icon}</span>
-            {!collapsed && <span>{item.label}</span>}
+            <span className="text-xl">{item.icon}</span>
+            {!collapsed && <span className="tracking-wide">{item.label}</span>}
           </NavLink>
         ))}
       </nav>
 
+      {/* Utilities / Toggle Theme */}
+      <div className="px-4 py-3">
+        <button 
+          onClick={toggleTheme}
+          title={isDarkMode ? "Giao diện Sáng" : "Giao diện Tối"}
+          className={`flex items-center justify-center w-full py-2 rounded-xl border transition-all duration-300 gap-3 
+            ${isDarkMode ? 'border-gray-800 bg-gray-900 hover:bg-gray-800 text-yellow-300' : 'border-gray-700 bg-gray-800 hover:bg-gray-700 text-blue-300'}`}
+        >
+          <span className="text-lg">{isDarkMode ? '🌙' : '🌞'}</span>
+          {!collapsed && <span className="text-xs font-semibold text-gray-300">{isDarkMode ? 'Giao diện Tối' : 'Giao diện Sáng'}</span>}
+        </button>
+      </div>
+
       {/* User info */}
-      <div className="px-4 py-4 border-t border-gray-700">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold">
-            K
+      <div className="px-4 py-5 border-t border-gray-800 bg-gray-900/50">
+        <div className="flex items-center gap-3 relative group">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-blue-500/30 border border-blue-400/30">
+            A
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Chủ nhà</p>
-              <p className="text-xs text-gray-400 truncate">owner@home.com</p>
+              <p className="text-sm font-bold text-gray-100 truncate">Admin</p>
+              <button onClick={onLogout} className="text-xs font-semibold text-red-400 hover:text-red-300 hover:underline transition-colors mt-0.5 truncate flex items-center gap-1">
+                <span>🚪</span> Đăng xuất
+              </button>
             </div>
+          )}
+          {collapsed && (
+             <div className="absolute left-full ml-4 hidden group-hover:flex items-center">
+                 <button onClick={onLogout} className="bg-red-500 hover:bg-red-600 text-white rounded-lg px-3 py-1.5 shadow-lg text-xs font-bold transition-transform hover:scale-105">
+                     Đăng xuất
+                 </button>
+             </div>
           )}
         </div>
       </div>

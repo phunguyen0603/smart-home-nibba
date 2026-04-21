@@ -10,11 +10,11 @@ import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 
 // Layout với Sidebar
-function AppLayout({ onLogout }) {
+function AppLayout({ onLogout, isDarkMode, toggleTheme }) {
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar onLogout={onLogout} />
-      <main className="flex-1 overflow-y-auto p-6">
+    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <Sidebar onLogout={onLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+      <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/control" element={<Control />} />
@@ -31,6 +31,29 @@ function AppLayout({ onLogout }) {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
   const [isChecking, setIsChecking] = useState(true);
+
+  // QUẢN LÝ DARK MODE MẠNH MẼ (lưu localstorage và can thiệp body class)
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Ưu tiên load từ local, nếu không có check system preference
+    const storedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialMode = storedTheme === "dark" || (!storedTheme && prefersDark);
+    
+    setIsDarkMode(initialMode);
+    if (initialMode) document.documentElement.classList.add("dark");
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode(prev => {
+      const newMode = !prev;
+      if (newMode) document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", newMode ? "dark" : "light");
+      return newMode;
+    });
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -56,7 +79,7 @@ export default function App() {
   }
 
   if (isChecking) {
-    return <div className="h-screen flex items-center justify-center text-gray-500 font-medium">Đang kiểm tra đăng nhập...</div>;
+    return <div className="h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900 text-gray-500 font-medium">Đang tải cấu hình an ninh...</div>;
   }
 
   return (
@@ -65,7 +88,7 @@ export default function App() {
         <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
         <Route
           path="/*"
-          element={isAuthenticated ? <AppLayout onLogout={handleLogout} /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <AppLayout onLogout={handleLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} /> : <Navigate to="/login" />}
         />
       </Routes>
     </BrowserRouter>
