@@ -27,4 +27,5 @@ const DoorLogSchema = new mongoose.Schema(
 // Index để query nhanh theo thời gian
 DoorLogSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model("DoorLog", DoorLogSchema);
+module.exports =
+  mongoose.models.DoorLog || mongoose.model("DoorLog", DoorLogSchema);

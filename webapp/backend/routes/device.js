@@ -27,7 +27,7 @@ const VALID_DEVICES = ["relay", "fan", "servo", "led"];
 //  POST /api/device/control — Gửi lệnh điều khiển
 //  Body: { device: "relay"|"fan"|"servo"|"led", value: "1"|"0"|"90"|"255,0,0" }
 // ============================================================
-router.post("/control", protect, (req, res) => {
+router.post("/control", (req, res) => {
   const { device, value } = req.body;
 
   // Validate input
@@ -83,7 +83,7 @@ router.post("/control", protect, (req, res) => {
 // ============================================================
 //  GET /api/device/status — Trạng thái thiết bị hiện tại
 // ============================================================
-router.get("/status", protect, (req, res) => {
+router.get("/status", (req, res) => {
   res.json({
     data: deviceStatus,
     devices: VALID_DEVICES.map((d) => ({

@@ -3,7 +3,7 @@ const AlertLog = require("../database/models/Alertlog");
 
 // Ngưỡng cảnh báo
 const THRESHOLD = {
-  temperature: 35, // vượt ngưỡng -> tạo alert
+  temperature: 30, // vượt ngưỡng -> tạo alert
   humidity: 80, // vượt ngưỡng → tạo alert
 };
 
@@ -36,9 +36,37 @@ const SensorService = {
       value: numericValue,
     });
 
-    await this.checkThreshold(type, numericValue);
+    await this.checkThreshold(type, numericValue, io);
+
+    if (global.io) {
+      global.io.emit("new-sensor", sensorLog);
+    }
 
     return sensorLog;
+  },
+  async checkThreshold(type, value, io) {
+    const threshold = THRESHOLD[type];
+
+    if (threshold === undefined || value <= threshold) {
+      return null;
+    }
+
+    const messageBuilder = ALERT_MESSAGE_BUILDER[type];
+
+    if (!messageBuilder) {
+      return null;
+    }
+
+    const alert = await AlertLog.create({
+      type,
+      message: messageBuilder(value),
+    });
+
+    if (io) {
+      io.emit("new-alert", alert);
+    }
+
+    return alert;
   },
 
   // ----------------------------------------------------------
@@ -63,15 +91,41 @@ const SensorService = {
   //  @param {number} limit — số lượng bản ghi (default 20)
   //  @returns {Array} danh sách SensorLog
   // ----------------------------------------------------------
-  async getHistory(type, limit = 20) {
-    const parsedLimit = Number.parseInt(limit, 10);
-    const finalLimit = Number.isNaN(parsedLimit)
-      ? 20
-      : Math.min(Math.max(parsedLimit, 1), 200);
-
+  async getHistory(type, limit = 15, skip = 0) {
     const query = type ? { type } : {};
 
-    return SensorLog.find(query).sort({ createdAt: -1 }).limit(finalLimit);
+    return SensorLog.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+  },
+
+  async getHistoryGrouped(limit = 15, skip = 0) {
+    const logs = await SensorLog.find().sort({ createdAt: -1 }).lean();
+
+    // Map: timestamp (giây) -> group
+    const map = new Map();
+
+    for (let log of logs) {
+      const ts = Math.floor(new Date(log.createdAt).getTime() / 1000); // timestamp giây
+      if (!map.has(ts)) {
+        map.set(ts, {
+          createdAt: log.createdAt,
+          temperature: null,
+          humidity: null,
+          light: null,
+        });
+      }
+      map.get(ts)[log.type] = log.value;
+    }
+
+    const groups = Array.from(map.values()).sort(
+      (a, b) => b.createdAt - a.createdAt,
+    ); // giảm dần
+    return {
+      data: groups.slice(skip, skip + limit),
+      total: groups.length,
+    };
   },
 
   async checkThreshold(type, value) {

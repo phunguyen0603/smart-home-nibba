@@ -20,7 +20,7 @@ const router = express.Router();
 // ------------------------------------------------------------
 //  GET /api/alert — Danh sách cảnh báo
 // ------------------------------------------------------------
-router.get("/", protect, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { type, is_read, limit = 50, page = 1 } = req.query;
 
@@ -55,7 +55,7 @@ router.get("/", protect, async (req, res) => {
 // ------------------------------------------------------------
 //  GET /api/alert/unread — Số cảnh báo chưa đọc
 // ------------------------------------------------------------
-router.get("/unread", protect, async (req, res) => {
+router.get("/unread", async (req, res) => {
   try {
     const count = await AlertLog.countDocuments({ is_read: false });
     res.json({ unread: count });
@@ -67,7 +67,7 @@ router.get("/unread", protect, async (req, res) => {
 // ------------------------------------------------------------
 //  GET /api/alert/:id — Chi tiết cảnh báo
 // ------------------------------------------------------------
-router.get("/:id", protect, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -120,12 +120,15 @@ router.post("/", async (req, res) => {
 // ------------------------------------------------------------
 //  PUT /api/alert/read-all — Đánh dấu tất cả đã đọc
 // ------------------------------------------------------------
-router.put("/read-all", protect, async (req, res) => {
+router.put("/read-all", async (req, res) => {
   try {
     const result = await AlertLog.updateMany(
       { is_read: false },
-      { is_read: true }
+      { is_read: true },
     );
+
+    const io = req.app.get("io");
+    io.emit("alert-read");
 
     res.json({
       message: `Đã đánh dấu ${result.modifiedCount} cảnh báo đã đọc`,
@@ -138,17 +141,20 @@ router.put("/read-all", protect, async (req, res) => {
 // ------------------------------------------------------------
 //  PUT /api/alert/:id/read — Đánh dấu 1 cảnh báo đã đọc
 // ------------------------------------------------------------
-router.put("/:id/read", protect, async (req, res) => {
+router.put("/:id/read", async (req, res) => {
   try {
     const alert = await AlertLog.findByIdAndUpdate(
       req.params.id,
       { is_read: true },
-      { new: true }
+      { new: true },
     );
 
     if (!alert) {
       return res.status(404).json({ message: "Không tìm thấy cảnh báo" });
     }
+
+    const io = req.app.get("io");
+    io.emit("alert-read");
 
     res.json({ message: "Đã đánh dấu đã đọc", data: alert });
   } catch (error) {
@@ -159,7 +165,7 @@ router.put("/:id/read", protect, async (req, res) => {
 // ------------------------------------------------------------
 //  DELETE /api/alert/:id — Xóa cảnh báo
 // ------------------------------------------------------------
-router.delete("/:id", protect, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: "id không hợp lệ" });
@@ -170,6 +176,9 @@ router.delete("/:id", protect, async (req, res) => {
     if (!alert) {
       return res.status(404).json({ message: "Không tìm thấy cảnh báo" });
     }
+
+    const io = req.app.get("io");
+    io.emit("alert-deleted", alert._id);
 
     res.json({ message: "Đã xóa cảnh báo" });
   } catch (error) {

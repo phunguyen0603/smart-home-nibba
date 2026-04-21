@@ -16,6 +16,7 @@ export default function Dashboard() {
   });
 
   const [recentAlerts, setRecentAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // 1. Khởi tạo dữ liệu từ backend API lúc mới mở màn hình
@@ -65,6 +66,8 @@ export default function Dashboard() {
         }
       } catch (error) {
         console.error("Lỗi nạp dữ liệu ban đầu:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -72,10 +75,8 @@ export default function Dashboard() {
 
     // 2. Lắng nghe dữ liệu realtime từ Socket.IO
     socket.on("sensor-data", (data) => {
-      // data format expected: { type: "temperature", value: 36, unit: "°C", timestamp: "..." }
       setSensorState((prev) => {
-        if (!prev[data.type]) return prev; // Không hiển thị motion, distance ở box chính
-
+        if (!prev[data.type]) return prev;
         const next = { ...prev };
         let statusStr = "normal";
         let noteStr = "Bình thường";
@@ -95,7 +96,6 @@ export default function Dashboard() {
     });
 
     socket.on("device-status", (data) => {
-      // data format expected: { device: "led", value: "1" }
       setDeviceState((prev) => {
         if (!prev[data.device]) return prev;
         const next = { ...prev };
@@ -127,31 +127,26 @@ export default function Dashboard() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Đang cập nhật thời gian thực qua socket
-        </p>
+        <p className="text-sm text-gray-500 mt-1">Đang cập nhật thời gian thực qua socket</p>
       </div>
 
       {/* Sensor Cards */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Môi trường
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Môi trường</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {sensorDataArray.map((s, idx) => (
-            <div
-              key={idx}
-              className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${s.status === "warning" ? "border-orange-400" : "border-green-400"}`}
-            >
+            <div key={idx} className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${s.status === "warning" ? "border-orange-400" : "border-green-400"}`}>
               <div className="flex items-center justify-between">
                 <span className="text-2xl">{s.icon}</span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full font-medium ${s.status === "warning" ? "bg-orange-100 text-orange-600" : "bg-green-100 text-green-600"}`}
-                >
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${s.status === "warning" ? "bg-orange-100 text-orange-600" : "bg-green-100 text-green-600"}`}>
                   {s.status === "warning" ? "Cảnh báo" : "Bình thường"}
                 </span>
               </div>
-              <p className="text-3xl font-bold text-gray-800 mt-3">{s.value}{s.value !== "--" ? s.unit : ""}</p>
+              {loading ? (
+                  <div className="h-8 bg-gray-100 rounded mt-3 animate-pulse" />
+              ) : (
+                  <p className="text-3xl font-bold text-gray-800 mt-3">{s.value}{s.value !== "--" ? s.unit : ""}</p>
+              )}
               <p className="text-sm text-gray-500 mt-1">{s.label}</p>
               <p className="text-xs text-gray-400 mt-1">{s.note}</p>
             </div>
@@ -161,20 +156,13 @@ export default function Dashboard() {
 
       {/* Device Status */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Trạng thái thiết bị
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Trạng thái thiết bị</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {devicesArray.map((d) => (
-            <div
-              key={d.id}
-              className="bg-white rounded-xl p-4 shadow-sm text-center transition duration-200 ease-in-out hover:shadow-md"
-            >
+            <div key={d.id} className="bg-white rounded-xl p-4 shadow-sm text-center transition duration-200 ease-in-out hover:shadow-md">
               <div className="text-3xl mb-2">{d.icon}</div>
               <p className="text-sm font-medium text-gray-700">{d.label}</p>
-              <span
-                className={`inline-block mt-2 text-xs px-2 py-1 rounded-full font-medium ${d.status ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}
-              >
+              <span className={`inline-block mt-2 text-xs px-2 py-1 rounded-full font-medium ${d.status ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"}`}>
                 {d.status ? "Đang bật" : "Đang tắt"}
               </span>
             </div>
@@ -184,22 +172,16 @@ export default function Dashboard() {
 
       {/* Recent Alerts */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          Cảnh báo gần đây
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Cảnh báo gần đây</h2>
         <div className="bg-white rounded-xl shadow-sm divide-y divide-gray-100">
           {recentAlerts.length > 0 ? (
             recentAlerts.map((a, i) => (
               <div key={i} className="flex items-center gap-4 px-4 py-3">
-                <span className="text-xl">
-                  {a.type === "temperature" || a.type === "humidity" ? "🌡️" : "👤"}
-                </span>
+                <span className="text-xl">{a.type === "temperature" || a.type === "humidity" ? "🌡️" : "👤"}</span>
                 <div className="flex-1">
                   <p className="text-sm text-gray-800 flex items-center justify-between">
                     <span>{a.message}</span>
-                    <span className="text-xs text-gray-400">
-                       {new Date(a.createdAt || new Date()).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit'})}
-                    </span>
+                    <span className="text-xs text-gray-400">{new Date(a.createdAt || new Date()).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit'})}</span>
                   </p>
                 </div>
               </div>

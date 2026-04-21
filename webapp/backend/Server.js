@@ -69,10 +69,10 @@ app.get("/", (req, res) => {
 //  Socket.IO — Xử lý kết nối realtime
 // ============================================================
 io.on("connection", (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
+  console.log(`Client connected: ${socket.id}`);
 
   socket.on("disconnect", () => {
-    console.log(`🔌 Client disconnected: ${socket.id}`);
+    console.log(`Client disconnected: ${socket.id}`);
   });
 });
 
@@ -90,6 +90,6 @@ app.set("mqttBridge", mqttBridge);
 // ============================================================
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`\n🏠 SmartHome Backend running on http://localhost:${PORT}`);
+  console.log(`\n SmartHome Backend running on http://localhost:${PORT}`);
   console.log(`   Socket.IO ready for realtime connections\n`);
 });

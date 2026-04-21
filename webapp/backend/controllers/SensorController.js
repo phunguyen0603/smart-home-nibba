@@ -62,18 +62,24 @@ const SensorController = {
   // ----------------------------------------------------------
   async getHistory(req, res) {
     try {
-      const { type, limit } = req.query;
+      const { limit = 15, page = 1 } = req.query;
 
-      if (type && !ALLOWED_TYPES.includes(type)) {
-        return res.status(400).json({
-          message: `type không hợp lệ. Chỉ chấp nhận: ${ALLOWED_TYPES.join(", ")}`,
-        });
-      }
+      const parsedLimit = parseInt(limit);
+      const parsedPage = parseInt(page);
 
-      const history = await SensorService.getHistory(type, limit);
-      return res.status(200).json(history);
+      const finalLimit = isNaN(parsedLimit) ? 15 : parsedLimit;
+      const skip = (parsedPage - 1) * finalLimit;
+
+      const result = await SensorService.getHistoryGrouped(finalLimit, skip);
+
+      res.status(200).json({
+        data: result.data,
+        total: result.total,
+        page: parsedPage,
+        pages: Math.ceil(result.total / finalLimit),
+      });
     } catch (error) {
-      return res.status(getStatusCode(error)).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
   },
 };

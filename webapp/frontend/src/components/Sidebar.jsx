@@ -1,16 +1,47 @@
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:3000");
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: "📊" },
   { path: "/control", label: "Control", icon: "🎛️" },
-  { path: "/alerts", label: "Alerts", icon: "🔔", badge: 3 },
+  { path: "/alerts", label: "Alerts", icon: "🔔" },
   { path: "/history", label: "History", icon: "📋" },
 ];
 
 const adminItems = [{ path: "/admin", label: "Manage Users", icon: "👥" }];
 
 export default function Sidebar() {
+  const [unread, setUnread] = useState(0);
+
+  const fetchUnread = () => {
+    fetch("http://localhost:3000/api/alert/unread")
+      .then((res) => res.json())
+      .then((data) => setUnread(data.unread || 0))
+      .catch(() => setUnread(0));
+  };
+
+  useEffect(() => {
+    const handleNewAlert = () => fetchUnread();
+    const handleAlertRead = () => fetchUnread();
+
+    const handleAlertDeleted = (deletedCount) => {
+      setUnread((prev) => Math.max(prev - deletedCount, 0)); // trừ trực tiếp
+    };
+
+    socket.on("new-alert", handleNewAlert);
+    socket.on("alert-read", handleAlertRead);
+    socket.on("alert-deleted", handleAlertDeleted);
+
+    return () => {
+      socket.off("new-alert", handleNewAlert);
+      socket.off("alert-read", handleAlertRead);
+      socket.off("alert-deleted", handleAlertDeleted);
+    };
+  }, []);
+
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -43,9 +74,9 @@ export default function Sidebar() {
           >
             <span className="text-lg">{item.icon}</span>
             {!collapsed && <span className="flex-1">{item.label}</span>}
-            {!collapsed && item.badge && (
+            {!collapsed && item.path === "/alerts" && unread > 0 && (
               <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
-                {item.badge}
+                {unread}
               </span>
             )}
             {collapsed && item.badge && (
