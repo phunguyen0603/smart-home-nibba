@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { apiClient } from "./config";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Control from "./pages/Control";
@@ -8,11 +10,11 @@ import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 
 // Layout với Sidebar
-function AppLayout() {
+function AppLayout({ onLogout, isDarkMode, toggleTheme }) {
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto p-6">
+    <div className="flex h-screen bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+      <Sidebar onLogout={onLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+      <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/control" element={<Control />} />
@@ -27,16 +29,66 @@ function AppLayout() {
 }
 
 export default function App() {
-  // TODO: Thay bằng auth check thật sau
-  const isLoggedIn = true;
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+  const [isChecking, setIsChecking] = useState(true);
+
+  // QUẢN LÝ DARK MODE MẠNH MẼ (lưu localstorage và can thiệp body class)
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Ưu tiên load từ local, nếu không có check system preference
+    const storedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initialMode = storedTheme === "dark" || (!storedTheme && prefersDark);
+    
+    setIsDarkMode(initialMode);
+    if (initialMode) document.documentElement.classList.add("dark");
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode(prev => {
+      const newMode = !prev;
+      if (newMode) document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", newMode ? "dark" : "light");
+      return newMode;
+    });
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setIsAuthenticated(false);
+      setIsChecking(false);
+      return;
+    }
+
+    // Xác thực token với backend lấy thông tin user
+    apiClient.get("/auth/me")
+      .then(() => setIsAuthenticated(true))
+      .catch(() => {
+         localStorage.removeItem("token");
+         setIsAuthenticated(false);
+      })
+      .finally(() => setIsChecking(false));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsAuthenticated(false);
+  }
+
+  if (isChecking) {
+    return <div className="h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900 text-gray-500 font-medium">Đang tải cấu hình an ninh...</div>;
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
         <Route
           path="/*"
-          element={isLoggedIn ? <AppLayout /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <AppLayout onLogout={handleLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} /> : <Navigate to="/login" />}
         />
       </Routes>
     </BrowserRouter>
