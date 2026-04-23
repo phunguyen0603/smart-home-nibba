@@ -88,6 +88,7 @@ app.set("mqttBridge", mqttBridge);
 // ============================================================
 //  Khởi động Server
 // ============================================================
+
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`\n SmartHome Backend running on http://localhost:${PORT}`);

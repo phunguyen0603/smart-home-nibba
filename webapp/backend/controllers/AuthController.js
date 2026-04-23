@@ -91,9 +91,9 @@ const AuthController = {
 
   logout: async (req, res) => {
     try {
-      // TODO: Code logout. 
-      // Lưu ý có thể hủy token ở client hoặc đưa token vào blacklist (Redis/DB).
-      res.json({ message: ".." });
+      // Để logout, phía client chỉ cần xóa token khỏi localStorage/cookie.
+      // Nếu muốn bảo mật hơn, có thể lưu token vào blacklist (chưa triển khai Redis/DB ở đây).
+      res.json({ message: "Logout successful" });
     } catch (error) {
       res.status(500).json({ message: "Server Error", error: error.message });
     }
@@ -102,12 +102,21 @@ const AuthController = {
   forgotPassword: async (req, res) => {
     try {
       const { email } = req.body;
-      // TODO: Code chức năng quên mật khẩu.
-      // 1. Kiểm tra email người dùng có tồn tại.
-      // 2. Tạo mã OTP hoặc token.
-      // 3. Gửi email chứa OTP/Token cho người dùng. 
-      // (Chỉ yêu cầu trả lại OTP qua poastman  là ok)
-      res.json({ message: ".." });
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      const user = await AuthService.findUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      // Tạo mã OTP 6 số
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Lưu OTP vào user (hoặc DB/Redis, ở đây demo lưu tạm vào user)
+      user.resetOTP = otp;
+      user.resetOTPExpire = Date.now() + 10 * 60 * 1000; // 10 phút
+      await user.save();
+      // Gửi OTP qua email (ở đây chỉ trả về OTP cho Postman test)
+      res.json({ message: "OTP sent", otp });
     } catch (error) {
       res.status(500).json({ message: "Server Error", error: error.message });
     }
@@ -115,11 +124,22 @@ const AuthController = {
 
   resetPassword: async (req, res) => {
     try {
-      const { token, newPassword } = req.body;
-      // TODO: Code logic đặt lại mật khẩu.
-      // 1. Xác thực token/OTP hợp lệ.
-      // 2. Chỉnh sửa mật khẩu (lưu ý User.js tự hash rổi)
-      res.json({ message: ".." });
+      const { token, email, newPassword } = req.body;
+      if (!token || !email || !newPassword) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      const user = await AuthService.findUserByEmail(email);
+      if (!user || !user.resetOTP || !user.resetOTPExpire) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+      if (user.resetOTP !== token || user.resetOTPExpire < Date.now()) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+      user.password = newPassword;
+      user.resetOTP = undefined;
+      user.resetOTPExpire = undefined;
+      await user.save();
+      res.json({ message: "Password reset successful" });
     } catch (error) {
       res.status(500).json({ message: "Server Error", error: error.message });
     }

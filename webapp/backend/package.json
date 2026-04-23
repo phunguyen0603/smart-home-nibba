@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node Server.js",
     "dev": "nodemon Server.js",
+    
     "infra": "docker-compose -f ../../docker-compose.yml up -d",
     "infra:down": "docker-compose -f ../../docker-compose.yml down"
   },
@@ -22,5 +23,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
+    
   }
 }
