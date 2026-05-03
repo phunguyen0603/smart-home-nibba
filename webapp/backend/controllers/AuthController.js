@@ -27,6 +27,7 @@ const AuthController = {
           id: user._id,
           name: user.name,
           email: user.email,
+          role: user.role,
         },
         token: AuthService.generateToken(user._id),
       });
@@ -52,6 +53,10 @@ const AuthController = {
           .json({ message: "Wrong email or password" });
       }
 
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Tài khoản hiện đang bị khóa" });
+      }
+
       // So sánh password
       const isMatch = await AuthService.comparePassword(password, user.password);
       if (!isMatch) {
@@ -66,6 +71,7 @@ const AuthController = {
           id: user._id,
           name: user.name,
           email: user.email,
+          role: user.role,
         },
         token: AuthService.generateToken(user._id),
       });
@@ -81,6 +87,7 @@ const AuthController = {
           id: req.user._id,
           name: req.user.name,
           email: req.user.email,
+          role: req.user.role,
           createdAt: req.user.createdAt,
         },
       });

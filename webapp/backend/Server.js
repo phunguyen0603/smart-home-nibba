@@ -50,6 +50,7 @@ app.use("/api/sensor", require("./routes/sensor"));
 app.use("/api/door", require("./routes/door"));
 app.use("/api/alert", require("./routes/alert"));
 app.use("/api/device", require("./routes/device"));
+app.use("/api/admin", require("./routes/admin"));
 
 app.get("/", (req, res) => {
   res.json({

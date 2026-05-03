@@ -107,7 +107,7 @@ const SensorService = {
     const map = new Map();
 
     for (let log of logs) {
-      const ts = Math.floor(new Date(log.createdAt).getTime() / 1000); // timestamp giây
+      const ts = Math.floor(new Date(log.createdAt).getTime() / 5000); // timestamp giây
       if (!map.has(ts)) {
         map.set(ts, {
           createdAt: log.createdAt,

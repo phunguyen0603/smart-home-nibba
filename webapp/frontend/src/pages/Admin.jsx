@@ -1,54 +1,49 @@
-import { useState } from "react";
-
-const mockUsers = [
-  {
-    id: 1,
-    name: "Nguyễn Văn A",
-    email: "a@home.com",
-    role: "user",
-    is_active: true,
-    created: "01/01/2026",
-  },
-  {
-    id: 2,
-    name: "Trần Thị B",
-    email: "b@home.com",
-    role: "user",
-    is_active: true,
-    created: "05/02/2026",
-  },
-  {
-    id: 3,
-    name: "Lê Văn C",
-    email: "c@home.com",
-    role: "user",
-    is_active: false,
-    created: "10/03/2026",
-  },
-  {
-    id: 4,
-    name: "Admin System",
-    email: "admin@home.com",
-    role: "admin",
-    is_active: true,
-    created: "01/01/2026",
-  },
-];
+import { useState, useEffect } from "react";
+import { apiClient } from "../config";
 
 export default function Admin() {
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleActive = (id) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, is_active: !u.is_active } : u)),
-    );
-    // TODO: Bổ sung code gọi apiClient.patch('/admin/users/:id') khi nào backend có route
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await apiClient.get('/admin/users');
+      setUsers(res.data);
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteUser = (id) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-    // TODO: Bổ sung code gọi apiClient.delete
+  const toggleActive = async (id) => {
+    try {
+      const res = await apiClient.patch(`/admin/users/${id}/toggle-active`);
+      setUsers((prev) =>
+        prev.map((u) => (u._id === id ? { ...u, isActive: res.data.user.isActive } : u)),
+      );
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khóa/mở khóa");
+    }
   };
+
+  const deleteUser = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa tài khoản này? Hành động này không thể hoàn tác.")) return;
+    try {
+      await apiClient.delete(`/admin/users/${id}`);
+      setUsers((prev) => prev.filter((u) => u._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi xóa user");
+    }
+  };
+
+  if (loading) {
+    return <div className="p-10 text-center font-bold text-gray-500">Đang tải danh sách người dùng...</div>;
+  }
 
   return (
     <div className="space-y-6 pb-10 animate-fade-in">
@@ -77,11 +72,11 @@ export default function Admin() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700/50">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
+                <tr key={u._id} className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold shadow-md transform group-hover:scale-110 transition-transform">
-                        {u.name.charAt(0)}
+                        {u.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className="font-bold text-gray-800 dark:text-gray-100">{u.name}</p>
@@ -100,31 +95,31 @@ export default function Admin() {
                   <td className="px-6 py-4 text-center">
                     <span
                       className={`text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full font-bold shadow-sm border flex items-center justify-center w-fit mx-auto gap-1.5
-                      ${u.is_active ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30" : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30"}`}
+                      ${u.isActive ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30" : "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-500/30"}`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                      {u.is_active ? "Hoạt động" : "Bị khóa"}
+                      <span className={`w-1.5 h-1.5 rounded-full ${u.isActive ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                      {u.isActive ? "Hoạt động" : "Bị khóa"}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center text-gray-500 dark:text-gray-400 font-semibold">
-                    {u.created}
+                    {new Date(u.createdAt).toLocaleDateString("vi-VN")}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-3">
                       <button
-                        onClick={() => toggleActive(u.id)}
+                        onClick={() => toggleActive(u._id)}
                         className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all hover:-translate-y-0.5 shadow-sm
                           ${
-                            u.is_active
+                            u.isActive
                               ? "border-orange-300 dark:border-orange-500/50 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/30"
                               : "border-emerald-300 dark:border-emerald-500/50 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
                           }`}
                       >
-                        {u.is_active ? "Khóa" : "Mở khóa"}
+                        {u.isActive ? "Khóa" : "Mở khóa"}
                       </button>
                       {u.role !== "admin" ? (
                         <button
-                          onClick={() => deleteUser(u.id)}
+                          onClick={() => deleteUser(u._id)}
                           className="text-xs px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-500/50 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 font-bold transition-all shadow-sm hover:-translate-y-0.5"
                         >
                           Xóa

@@ -11,7 +11,7 @@ const navItems = [
 
 const adminItems = [{ path: "/admin", label: "Quản lý Người dùng", icon: "👥" }];
 
-export default function Sidebar({ onLogout, isDarkMode, toggleTheme }) {
+export default function Sidebar({ onLogout, isDarkMode, toggleTheme, user }) {
   const [unread, setUnread] = useState(0);
 
   const fetchUnread = () => {
@@ -61,7 +61,7 @@ export default function Sidebar({ onLogout, isDarkMode, toggleTheme }) {
 
       {/* Nav Items */}
       <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-        {navItems.map((item) => (
+        {user?.role !== 'admin' && navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -85,10 +85,7 @@ export default function Sidebar({ onLogout, isDarkMode, toggleTheme }) {
           </NavLink>
         ))}
 
-        {/* Divider */}
-        <div className="border-t border-gray-800 my-4" />
-
-        {adminItems.map((item) => (
+        {user?.role === 'admin' && adminItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -124,7 +121,7 @@ export default function Sidebar({ onLogout, isDarkMode, toggleTheme }) {
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-100 truncate">Admin</p>
+              <p className="text-sm font-bold text-gray-100 truncate">{user?.name || "User"}</p>
               <button onClick={onLogout} className="text-xs font-semibold text-red-400 hover:text-red-300 hover:underline transition-colors mt-0.5 truncate flex items-center gap-1">
                 <span>🚪</span> Đăng xuất
               </button>

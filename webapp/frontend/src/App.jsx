@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { apiClient } from "./config";
+import { apiClient, socket } from "./config";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Control from "./pages/Control";
@@ -10,18 +10,27 @@ import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 
 // Layout với Sidebar
-function AppLayout({ onLogout, isDarkMode, toggleTheme }) {
+function AppLayout({ onLogout, isDarkMode, toggleTheme, user }) {
+  const isAdmin = user?.role === "admin";
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      <Sidebar onLogout={onLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+      <Sidebar onLogout={onLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} user={user} />
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/control" element={<Control />} />
-          <Route path="/alerts" element={<Alerts />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          {isAdmin ? (
+            <>
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<Navigate to="/admin" />} />
+            </>
+          ) : (
+            <>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/control" element={<Control />} />
+              <Route path="/alerts" element={<Alerts />} />
+              <Route path="/history" element={<History />} />
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </>
+          )}
         </Routes>
       </main>
     </div>
@@ -30,6 +39,7 @@ function AppLayout({ onLogout, isDarkMode, toggleTheme }) {
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+  const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
 
   // QUẢN LÝ DARK MODE MẠNH MẼ (lưu localstorage và can thiệp body class)
@@ -65,17 +75,42 @@ export default function App() {
 
     // Xác thực token với backend lấy thông tin user
     apiClient.get("/auth/me")
-      .then(() => setIsAuthenticated(true))
+      .then((res) => {
+         setUser(res.data.user);
+         setIsAuthenticated(true);
+      })
       .catch(() => {
          localStorage.removeItem("token");
          setIsAuthenticated(false);
+         setUser(null);
       })
       .finally(() => setIsChecking(false));
   }, []);
 
+  useEffect(() => {
+    if (user && user.id) {
+      const lockEvent = `user-locked-${user.id}`;
+      const deleteEvent = `user-deleted-${user.id}`;
+
+      const handleKick = () => {
+        alert("Tài khoản của bạn đã bị khóa hoặc xóa bởi Admin. Phiên làm việc đã kết thúc.");
+        handleLogout();
+      };
+
+      socket.on(lockEvent, handleKick);
+      socket.on(deleteEvent, handleKick);
+
+      return () => {
+        socket.off(lockEvent, handleKick);
+        socket.off(deleteEvent, handleKick);
+      };
+    }
+  }, [user]);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsAuthenticated(false);
+    setUser(null);
   }
 
   if (isChecking) {
@@ -85,10 +120,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login onLogin={() => setIsAuthenticated(true)} />} />
+        <Route path="/login" element={isAuthenticated ? (user?.role === "admin" ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Login onLogin={(u) => { setUser(u); setIsAuthenticated(true); }} />} />
         <Route
           path="/*"
-          element={isAuthenticated ? <AppLayout onLogout={handleLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <AppLayout onLogout={handleLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} user={user} /> : <Navigate to="/login" />}
         />
       </Routes>
     </BrowserRouter>

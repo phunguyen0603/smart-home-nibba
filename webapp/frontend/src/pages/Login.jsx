@@ -27,7 +27,7 @@ export default function Login({ onLogin }) {
 
       if (verifiedToken) {
         localStorage.setItem("token", verifiedToken);
-        if (onLogin) onLogin();
+        if (onLogin) onLogin(res.data.user || res.data.data?.user);
       } else {
         setErrorMsg("Không trích xuất được token đăng nhập. Vui lòng thử lại.");
       }
