@@ -9,7 +9,7 @@ const DoorService = {
    */
   async getDoorLogs(filter = {}, limit = 50, page = 1) {
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [logs, total] = await Promise.all([
       Doorlog.find(filter)
         .sort({ createdAt: -1 })
@@ -43,7 +43,7 @@ const DoorService = {
    */
   async createLog(action, trigger) {
     return await Doorlog.create({ action, trigger });
-  }
+  },
 };
 
 module.exports = DoorService;

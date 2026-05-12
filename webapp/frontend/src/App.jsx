@@ -8,13 +8,19 @@ import Alerts from "./pages/Alerts";
 import History from "./pages/History";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
+import FaceManagement from "./pages/FaceManagement";
 
 // Layout với Sidebar
 function AppLayout({ onLogout, isDarkMode, toggleTheme, user }) {
   const isAdmin = user?.role === "admin";
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      <Sidebar onLogout={onLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} user={user} />
+      <Sidebar
+        onLogout={onLogout}
+        isDarkMode={isDarkMode}
+        toggleTheme={toggleTheme}
+        user={user}
+      />
       <main className="flex-1 overflow-y-auto p-6 md:p-8">
         <Routes>
           {isAdmin ? (
@@ -28,6 +34,10 @@ function AppLayout({ onLogout, isDarkMode, toggleTheme, user }) {
               <Route path="/control" element={<Control />} />
               <Route path="/alerts" element={<Alerts />} />
               <Route path="/history" element={<History />} />
+
+              {/* FACE MANAGEMENT */}
+              <Route path="/face" element={<FaceManagement />} />
+
               <Route path="*" element={<Navigate to="/dashboard" />} />
             </>
           )}
@@ -38,7 +48,9 @@ function AppLayout({ onLogout, isDarkMode, toggleTheme, user }) {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("token"),
+  );
   const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -48,15 +60,17 @@ export default function App() {
   useEffect(() => {
     // Ưu tiên load từ local, nếu không có check system preference
     const storedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
     const initialMode = storedTheme === "dark" || (!storedTheme && prefersDark);
-    
+
     setIsDarkMode(initialMode);
     if (initialMode) document.documentElement.classList.add("dark");
   }, []);
 
   const toggleTheme = () => {
-    setIsDarkMode(prev => {
+    setIsDarkMode((prev) => {
       const newMode = !prev;
       if (newMode) document.documentElement.classList.add("dark");
       else document.documentElement.classList.remove("dark");
@@ -74,15 +88,16 @@ export default function App() {
     }
 
     // Xác thực token với backend lấy thông tin user
-    apiClient.get("/auth/me")
+    apiClient
+      .get("/auth/me")
       .then((res) => {
-         setUser(res.data.user);
-         setIsAuthenticated(true);
+        setUser(res.data.user);
+        setIsAuthenticated(true);
       })
       .catch(() => {
-         localStorage.removeItem("token");
-         setIsAuthenticated(false);
-         setUser(null);
+        localStorage.removeItem("token");
+        setIsAuthenticated(false);
+        setUser(null);
       })
       .finally(() => setIsChecking(false));
   }, []);
@@ -93,7 +108,9 @@ export default function App() {
       const deleteEvent = `user-deleted-${user.id}`;
 
       const handleKick = () => {
-        alert("Tài khoản của bạn đã bị khóa hoặc xóa bởi Admin. Phiên làm việc đã kết thúc.");
+        alert(
+          "Tài khoản của bạn đã bị khóa hoặc xóa bởi Admin. Phiên làm việc đã kết thúc.",
+        );
         handleLogout();
       };
 
@@ -111,19 +128,52 @@ export default function App() {
     localStorage.removeItem("token");
     setIsAuthenticated(false);
     setUser(null);
-  }
+  };
 
   if (isChecking) {
-    return <div className="h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900 text-gray-500 font-medium">Đang tải cấu hình an ninh...</div>;
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-900 text-gray-500 font-medium">
+        Đang tải cấu hình an ninh...
+      </div>
+    );
   }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={isAuthenticated ? (user?.role === "admin" ? <Navigate to="/admin" /> : <Navigate to="/dashboard" />) : <Login onLogin={(u) => { setUser(u); setIsAuthenticated(true); }} />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              user?.role === "admin" ? (
+                <Navigate to="/admin" />
+              ) : (
+                <Navigate to="/dashboard" />
+              )
+            ) : (
+              <Login
+                onLogin={(u) => {
+                  setUser(u);
+                  setIsAuthenticated(true);
+                }}
+              />
+            )
+          }
+        />
         <Route
           path="/*"
-          element={isAuthenticated ? <AppLayout onLogout={handleLogout} isDarkMode={isDarkMode} toggleTheme={toggleTheme} user={user} /> : <Navigate to="/login" />}
+          element={
+            isAuthenticated ? (
+              <AppLayout
+                onLogout={handleLogout}
+                isDarkMode={isDarkMode}
+                toggleTheme={toggleTheme}
+                user={user}
+              />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
         />
       </Routes>
     </BrowserRouter>
