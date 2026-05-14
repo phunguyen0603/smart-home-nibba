@@ -8,14 +8,37 @@ export default function FaceManagement() {
   const [personName, setPersonName] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [knownFaces, setKnownFaces] = useState([]);
 
-  const fetchUnknownFaces = async () => {
+  const fetchKnownFaces = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await apiClient.get("/camera/known-faces", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log("KNOWN FACE RESPONSE:", response.data);
+
+      const faces = Array.isArray(response.data?.data?.images)
+        ? response.data.data.images
+        : [];
+
+      setKnownFaces(faces);
+    } catch (err) {
+      console.error("Load known faces failed:", err);
+    }
+  };
+
+  const fetchStrangerFaces = async () => {
     try {
       setLoading(true);
 
       const token = localStorage.getItem("token");
 
-      const response = await apiClient.get("/camera/unknown-faces", {
+      const response = await apiClient.get("/camera/stranger-faces", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -36,10 +59,12 @@ export default function FaceManagement() {
   };
 
   useEffect(() => {
-    fetchUnknownFaces();
+    fetchStrangerFaces();
+    fetchKnownFaces();
 
     socket.on("camera:new-event", () => {
-      fetchUnknownFaces();
+      fetchStrangerFaces();
+      fetchKnownFaces();
     });
 
     return () => {
@@ -49,6 +74,10 @@ export default function FaceManagement() {
 
   const handleAddKnownFace = async () => {
     if (!selectedFace || !personName.trim()) {
+      if (knownFaces.length >= 10) {
+        alert("Maximum 10 known faces. Please delete one first.");
+        return;
+      }
       alert("Please enter person name");
       return;
     }
@@ -78,7 +107,8 @@ export default function FaceManagement() {
       setSelectedFace(null);
       setActiveTab("unknown");
 
-      fetchUnknownFaces();
+      fetchStrangerFaces();
+      fetchKnownFaces();
     } catch (err) {
       console.error("FULL ERROR:", err);
       console.error("ERROR RESPONSE:", err.response?.data);
@@ -127,7 +157,81 @@ export default function FaceManagement() {
         >
           Add Known Face
         </button>
+
+        <button
+          onClick={() => setActiveTab("known")}
+          className={`px-5 py-2.5 rounded-xl font-semibold transition-all ${
+            activeTab === "known"
+              ? "bg-purple-500 text-white shadow-lg"
+              : "bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300"
+          }`}
+        >
+          Known Faces
+        </button>
       </div>
+
+      {activeTab === "known" && (
+        <div>
+          {knownFaces.length === 0 ? (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-10 text-center">
+              <p className="text-gray-500 dark:text-gray-400">
+                Chưa có người quen nào.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {knownFaces.map((face, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-slate-700 shadow-sm"
+                >
+                  <img
+                    src={face.url}
+                    alt="Known Face"
+                    className="w-full h-72 object-cover"
+                  />
+
+                  <div className="p-5">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      Known Person
+                    </p>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("token");
+
+                          await apiClient.delete("/camera/delete-known", {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                              "Upload-Secret-Key": "test",
+                            },
+                            data: {
+                              public_id: face.public_id,
+                            },
+                          });
+
+                          fetchKnownFaces();
+                        } catch (err) {
+                          console.error(err);
+                          alert("Delete known failed");
+                        }
+                      }}
+                      className="mt-3 w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded-xl font-semibold transition-all"
+                    >
+                      Delete
+                    </button>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {face.created_at
+                        ? new Date(face.created_at).toLocaleString("vi-VN")
+                        : "No timestamp"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {activeTab === "unknown" && (
         <div>
@@ -182,6 +286,31 @@ export default function FaceManagement() {
                     >
                       Add As Known Face
                     </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("token");
+
+                          await apiClient.delete("/camera/delete-stranger", {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                              "Upload-Secret-Key": "test",
+                            },
+                            data: {
+                              public_id: face.public_id,
+                            },
+                          });
+
+                          fetchStrangerFaces();
+                        } catch (err) {
+                          console.error(err);
+                          alert("Delete stranger failed");
+                        }
+                      }}
+                      className="w-full mt-2 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl font-semibold transition-all"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -226,7 +355,7 @@ export default function FaceManagement() {
 
               <button
                 onClick={handleAddKnownFace}
-                disabled={submitting}
+                disabled={submitting || knownFaces.length >= 10}
                 className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white py-3 rounded-xl font-bold transition-all"
               >
                 {submitting ? "Adding..." : "Add To Known Faces"}

@@ -18,6 +18,15 @@ const DoorController = {
 
       const log = await DoorService.createLog(action, trigger);
 
+      // REALTIME SOCKET
+      const io = req.app.get("io");
+
+      io.emit("door-log-updated", {
+        action,
+        trigger,
+        log,
+      });
+
       res.status(201).json({
         message: `Cửa đã ${action === "open" ? "MỞ" : "ĐÓNG"} (${trigger})`,
         data: log,

@@ -40,9 +40,7 @@ class MQTTBridge {
       !this.key ||
       this.username === "your-adafruit-username"
     ) {
-      console.log(
-        "MQTT Bridge: Chưa cấu hình AIO_USERNAME/AIO_KEY trong .env",
-      );
+      console.log("MQTT Bridge: Chưa cấu hình AIO_USERNAME/AIO_KEY trong .env");
       console.log("   Bridge sẽ không hoạt động cho đến khi cấu hình đúng.");
       return;
     }
@@ -235,9 +233,24 @@ class MQTTBridge {
   // ----------------------------------------------------------
   async _handleDoor(value) {
     const action = value === "1" ? "open" : "close";
-    const log = await DoorLog.create({ action, trigger: "ir_sensor" });
 
-    this.io.emit("device-status", { device: "servo", value });
+    const log = await DoorLog.create({
+      action,
+      trigger: "ir_sensor",
+    });
+
+    // realtime cho history
+    this.io.emit("door-log-updated", {
+      action,
+      log,
+    });
+
+    // realtime cho device status
+    this.io.emit("device-status", {
+      device: "servo",
+      value,
+    });
+
     console.log(`Door ${action} recorded to DB`);
   }
 

@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { socket, apiClient } from "../config";
 
@@ -15,7 +15,44 @@ const adminItems = [
 ];
 
 export default function Sidebar({ onLogout, isDarkMode, toggleTheme, user }) {
+  const location = useLocation();
   const [unread, setUnread] = useState(0);
+  const [unreadFaces, setUnreadFaces] = useState(0);
+
+  const fetchUnknownFacesCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await apiClient.get("/camera/stranger-faces", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const faces = Array.isArray(res.data?.data?.images)
+        ? res.data.data.images
+        : [];
+      const seenIds = JSON.parse(
+        localStorage.getItem("seenStrangerIds") || "[]",
+      );
+      const currentIds = faces.map((f) => f.public_id);
+      const prunedSeenIds = seenIds.filter((id) => currentIds.includes(id));
+
+      if (location.pathname === "/face") {
+        localStorage.setItem("seenStrangerIds", JSON.stringify(currentIds));
+        setUnreadFaces(0);
+      } else {
+        const unreadCount = currentIds.filter(
+          (id) => !prunedSeenIds.includes(id),
+        ).length;
+        setUnreadFaces(unreadCount);
+        localStorage.setItem("seenStrangerIds", JSON.stringify(prunedSeenIds));
+      }
+    } catch (err) {
+      console.error(err);
+      setUnreadFaces(0);
+    }
+  };
 
   const fetchUnread = () => {
     apiClient
@@ -24,25 +61,44 @@ export default function Sidebar({ onLogout, isDarkMode, toggleTheme, user }) {
       .catch(() => setUnread(0));
   };
 
+  // useEffect(() => {
+  //   fetchUnread(); // gọi sớm lúc mount
+
+  //   const handleNewAlert = () => fetchUnread();
+  //   const handleAlertRead = () => fetchUnread();
+  //   const handleAlertDeleted = (deletedCount) => {
+  //     setUnread((prev) => Math.max(prev - deletedCount, 0));
+  //   };
+
+  //   socket.on("new-alert", handleNewAlert);
+  //   socket.on("alert-read", handleAlertRead);
+  //   socket.on("alert-deleted", handleAlertDeleted);
+
+  //   return () => {
+  //     socket.off("new-alert", handleNewAlert);
+  //     socket.off("alert-read", handleAlertRead);
+  //     socket.off("alert-deleted", handleAlertDeleted);
+  //   };
+  // }, []);
+
   useEffect(() => {
-    fetchUnread(); // gọi sớm lúc mount
+    fetchUnread();
+    fetchUnknownFacesCount();
 
     const handleNewAlert = () => fetchUnread();
-    const handleAlertRead = () => fetchUnread();
-    const handleAlertDeleted = (deletedCount) => {
-      setUnread((prev) => Math.max(prev - deletedCount, 0));
+
+    const handleCameraEvent = () => {
+      fetchUnknownFacesCount();
     };
 
     socket.on("new-alert", handleNewAlert);
-    socket.on("alert-read", handleAlertRead);
-    socket.on("alert-deleted", handleAlertDeleted);
+    socket.on("camera:new-event", handleCameraEvent);
 
     return () => {
       socket.off("new-alert", handleNewAlert);
-      socket.off("alert-read", handleAlertRead);
-      socket.off("alert-deleted", handleAlertDeleted);
+      socket.off("camera:new-event", handleCameraEvent);
     };
-  }, []);
+  }, [location.pathname]);
 
   const [collapsed, setCollapsed] = useState(false);
 
@@ -86,9 +142,19 @@ export default function Sidebar({ onLogout, isDarkMode, toggleTheme, user }) {
                   {unread}
                 </span>
               )}
+              {!collapsed && item.path === "/face" && unreadFaces > 0 && (
+                <span className="bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-md animate-pulse">
+                  {unreadFaces}
+                </span>
+              )}
               {collapsed && item.path === "/alerts" && unread > 0 && (
                 <span className="absolute ml-6 -mt-4 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-gray-900 z-10">
                   {unread}
+                </span>
+              )}
+              {collapsed && item.path === "/face" && unreadFaces > 0 && (
+                <span className="absolute ml-6 -mt-4 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-gray-900 z-10">
+                  {unreadFaces}
                 </span>
               )}
             </NavLink>

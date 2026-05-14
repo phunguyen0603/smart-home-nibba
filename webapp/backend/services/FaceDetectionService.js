@@ -2,49 +2,91 @@ const axios = require("axios");
 
 const BASE_URL = "https://nomnom788-face-detection.hf.space";
 
+const detectHeaders = {
+  "Detect-Secret-Key": process.env.DETECT_SECRET_KEY,
+};
+
+const uploadHeaders = {
+  "Upload-Secret-Key": process.env.DETECT_SECRET_KEY,
+};
+
 const FaceDetectionService = {
-  getAllUnknownFaces: async () => {
-    const response = await axios.get(`${BASE_URL}/get-all`, {
-      headers: {
-        "Detect-Secret-Key": process.env.DETECT_SECRET_KEY,
+  // =========================================
+  // STRANGER FACES
+  // =========================================
+  getAllStrangerFaces: async () => {
+    const response = await axios.get(`${BASE_URL}/get-all/stranger`, {
+      headers: detectHeaders,
+    });
+
+    return response.data;
+  },
+
+  // =========================================
+  // KNOWN FACES
+  // =========================================
+  getAllKnownFaces: async () => {
+    const response = await axios.get(`${BASE_URL}/get-all/known-face`, {
+      headers: detectHeaders,
+    });
+
+    return response.data;
+  },
+
+  // =========================================
+  // ADD KNOWN FACE
+  // =========================================
+  addKnownFace: async (imageUrl) => {
+    const response = await axios.post(
+      `${BASE_URL}/add`,
+      {
+        image_url: imageUrl,
+      },
+      {
+        headers: uploadHeaders,
+      },
+    );
+
+    return response.data;
+  },
+
+  // =========================================
+  // DELETE STRANGER
+  // =========================================
+  deleteStrangerFace: async (publicId) => {
+    const response = await axios.delete(`${BASE_URL}/delete`, {
+      headers: uploadHeaders,
+      data: {
+        public_id: publicId,
       },
     });
 
     return response.data;
   },
 
-  addKnownFace: async (imageUrl, publicId, personName) => {
-    try {
-      console.log("ADDING FACE:");
-      console.log("imageUrl:", imageUrl);
-      console.log("publicId:", publicId);
-      console.log("personName:", personName);
-      console.log("SECRET:", process.env.DETECT_SECRET_KEY);
+  // =========================================
+  // DELETE KNOWN
+  // =========================================
+  deleteKnownFace: async (publicId) => {
+    const response = await axios.delete(`${BASE_URL}/delete-known`, {
+      headers: uploadHeaders,
+      data: {
+        public_id: publicId,
+      },
+    });
 
-      const response = await axios.post(
-        `${BASE_URL}/add`,
-        {
-          image_url: imageUrl,
-          public_id: publicId,
-          name: personName,
-        },
-        {
-          headers: {
-            "Upload-Secret-Key": process.env.DETECT_SECRET_KEY,
-          },
-        },
-      );
+    return response.data;
+  },
 
-      console.log("HF RESPONSE:", response.data);
+  // =========================================
+  // RECOGNIZE
+  // =========================================
+  recognizeFaces: async () => {
+    const response = await axios.get(`${BASE_URL}/recognize`, {
+      headers: detectHeaders,
+    });
 
-      return response.data;
-    } catch (err) {
-      console.error("HF ERROR STATUS:", err.response?.status);
-      console.error("HF ERROR DATA:", err.response?.data);
-      console.error("HF ERROR MESSAGE:", err.message);
-
-      throw err;
-    }
+    return response.data;
   },
 };
 

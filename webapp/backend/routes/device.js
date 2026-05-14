@@ -1,30 +1,31 @@
 // ============================================================
-//  device.js — API điều khiển thiết bị từ xa (F4)
+//  device.js — API dieu khien thiet bi tu xa
 //
-//  Webapp gửi lệnh → Backend → Adafruit IO → Yolo:Bit
+//  Webapp gui lenh -> Backend -> Adafruit IO -> Yolo:Bit
 //
 //  Endpoints:
-//    POST /api/device/control  — Gửi lệnh bật/tắt thiết bị
-//    GET  /api/device/status   — Trạng thái thiết bị hiện tại
+//    POST /api/device/control  - Gui lenh bat/tat device
+//    GET  /api/device/status   - trang thai
 // ============================================================
 const express = require("express");
 const { protect } = require("../middleware/auth_middleware");
 
 const router = express.Router();
 
-// Lưu trạng thái thiết bị trong memory (sẽ sync với Adafruit IO)
+// State luu trong memory (se sync voi Adafruit IO)
 const deviceStatus = {
   relay: "0",
   fan: "0",
   servo: "0",
-  led: "0,0,0",
+  led: "0",
+  mode: "1", // 1: AUTO, 0: MAN
 };
 
-// Danh sách thiết bị hợp lệ
-const VALID_DEVICES = ["relay", "fan", "servo", "led"];
+// List Device
+const VALID_DEVICES = ["relay", "fan", "servo", "led", "mode"];
 
 // ============================================================
-//  POST /api/device/control — Gửi lệnh điều khiển
+//  POST /api/device/control — send control command
 //  Body: { device: "relay"|"fan"|"servo"|"led", value: "1"|"0"|"90"|"255,0,0" }
 // ============================================================
 router.post("/control", (req, res) => {
@@ -33,7 +34,7 @@ router.post("/control", (req, res) => {
   // Validate input
   if (!device || value === undefined) {
     return res.status(400).json({
-      message: "Thiếu device hoặc value",
+      message: "no device hoặc value found",
       example: { device: "relay", value: "1" },
       validDevices: VALID_DEVICES,
     });
@@ -41,47 +42,46 @@ router.post("/control", (req, res) => {
 
   if (!VALID_DEVICES.includes(device)) {
     return res.status(400).json({
-      message: `Device '${device}' không hợp lệ`,
+      message: `Device '${device}' not suitable`,
       validDevices: VALID_DEVICES,
     });
   }
 
-  // Lấy mqtt bridge từ app (đã gắn trong Server.js)
   const mqttBridge = req.app.get("mqttBridge");
 
   if (!mqttBridge) {
     return res.status(503).json({
-      message: "MQTT Bridge chưa khởi tạo",
+      message: "MQTT Bridge has not been initialized",
     });
   }
 
-  // Publish lệnh lên Adafruit IO
+  // Publish len ada fruit
   const success = mqttBridge.publish(device, value);
 
   if (success) {
-    // Cập nhật trạng thái local
+    // cap nha trang thai
     deviceStatus[device] = String(value);
 
-    // Emit Socket.IO cho tất cả client biết
+    // Emit socket
     const io = req.app.get("io");
     if (io) {
       io.emit("device-status", { device, value: String(value) });
     }
 
     res.json({
-      message: `Đã gửi lệnh ${device} = ${value}`,
+      message: `Sent ${device} = ${value}`,
       device,
       value: String(value),
     });
   } else {
     res.status(503).json({
-      message: "Không thể gửi lệnh — MQTT chưa kết nối",
+      message: "MQTT Has not been connected",
     });
   }
 });
 
 // ============================================================
-//  GET /api/device/status — Trạng thái thiết bị hiện tại
+//  GET /api/device/status — State device
 // ============================================================
 router.get("/status", (req, res) => {
   res.json({
@@ -90,10 +90,11 @@ router.get("/status", (req, res) => {
       name: d,
       value: deviceStatus[d],
       label: {
-        relay: "Relay (Ổ cắm)",
-        fan: "Quạt",
-        servo: "Servo (Cửa)",
-        led: "LED RGB",
+        relay: "Relay",
+        fan: "Fan",
+        servo: "Servo",
+        led: "LED",
+        mode: "(Auto/Manual)",
       }[d],
     })),
   });

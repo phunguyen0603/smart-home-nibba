@@ -32,8 +32,8 @@ export default function History() {
       } else if (typeTab === "door") {
         const res = await apiClient.get(`/door?limit=${limit}&page=${page}`);
         setDoorLogs(res.data?.data || []);
-        setDoorPage(res.data?.page || 1);
-        setDoorPages(res.data?.pages || 1);
+        setDoorPage(res.data?.pagination?.page || 1);
+        setDoorPages(res.data?.pagination?.pages || 1);
       }
     } catch (err) {
       console.error(err);
@@ -50,10 +50,26 @@ export default function History() {
   }, [tab]);
 
   useEffect(() => {
-    const fnSensor = () =>
-      fetchLogs(tab, tab === "sensor" ? sensorPage : doorPage);
-    socket.on("sensor-data", fnSensor);
-    return () => socket.off("sensor-data", fnSensor);
+    const handleSensorUpdate = () => {
+      if (tab === "sensor") {
+        fetchLogs("sensor", sensorPage);
+      }
+    };
+
+    const handleDoorUpdate = () => {
+      if (tab === "door") {
+        setDoorPage(1);
+        fetchLogs("door", 1);
+      }
+    };
+
+    socket.on("sensor-data", handleSensorUpdate);
+    socket.on("door-log-updated", handleDoorUpdate);
+
+    return () => {
+      socket.off("sensor-data", handleSensorUpdate);
+      socket.off("door-log-updated", handleDoorUpdate);
+    };
   }, [tab, sensorPage, doorPage]);
 
   const handlePageChange = (direction) => {

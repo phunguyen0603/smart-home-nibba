@@ -5,20 +5,24 @@ const { protect } = require("../middleware/auth_middleware");
 
 const router = express.Router();
 
-// ======================================================
-// FastAPI gọi
-// ======================================================
+// ================= FACE DETECTION =================
 
-// router.post("/event", CameraController.createEvent);
+// stranger faces
+router.get("/stranger-faces", protect, CameraController.getStrangerFaces);
 
-// router.get("/history", protect, CameraController.getHistory);
+// known faces
+router.get("/known-faces", protect, CameraController.getKnownFaces);
 
-// router.get("/:id", protect, CameraController.getEventById);
-
-// router.delete("/:id", protect, CameraController.deleteEvent);
-
-router.get("/unknown-faces", protect, CameraController.getUnknownFaces);
-
+// add known face
 router.post("/add-known-face", protect, CameraController.addKnownFace);
+
+// delete stranger
+router.delete("/delete-stranger", protect, CameraController.deleteStrangerFace);
+
+// delete known
+router.delete("/delete-known", protect, CameraController.deleteKnownFace);
+
+// recognize summary
+router.get("/recognize", protect, CameraController.recognizeFaces);
 
 module.exports = router;
