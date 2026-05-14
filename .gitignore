@@ -1,12 +1,12 @@
 yolobit/config/setting.py
 
 camera/
-
+**Anh
 webapp/backend/config
 node_modules/
 **/node_modules/
 package-lock.json
-
+webapp/backend/upload.js
 
 WHL/
 
